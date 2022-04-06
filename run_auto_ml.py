@@ -20,4 +20,4 @@ if __name__ == '__main__':
     model_id = os.environ['MODEL_ID'] #sys.argv[3]  
     with open(file_path, 'rb') as ff:
       content = ff.read()   
-    print get_prediction(content, project_id, model_id)
+    print(get_prediction(content, project_id, model_id))
