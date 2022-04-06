@@ -54,4 +54,4 @@ if __name__ == '__main__':
     file_path = os.environ['FILE_PATH'] #sys.argv[1]
     project_id = os.environ['PROJECT_ID'] #sys.argv[2]
     model_id = os.environ['MODEL_ID'] #sys.argv[3]  
-    print(predict(file_path, project_id, model_id))
+    print(predict(project_id, model_id, file_path))
