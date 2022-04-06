@@ -13,6 +13,7 @@ def get_prediction(content, project_id, model_id):
     payload = payload['image']['image_bytes']
     #params = {}
     print(name)
+    print(payload)
     request = prediction_client.predict(name, payload)
     return request  # waits till request is returned
 
