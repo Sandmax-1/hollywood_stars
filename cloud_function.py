@@ -68,14 +68,15 @@ def create_dataset_and_table(project_id, dataset_name, table_name):
         make_bigquery_dataset(dataset_name)
     except Exception as e:
         msg = str(e)
-        if 'Already Exists' not in msg:
+        if "Already Exists" not in msg:
             raise
     try:
         make_bigquery_table(project_id, dataset_name, table_name)
     except Exception as e:
         msg = str(e)
-        if 'Already Exists' not in msg:
+        if "Already Exists" not in msg:
             raise
+
 
 def make_bigquery_dataset(dataset_name):
     # Construct a BigQuery client object.
@@ -95,9 +96,6 @@ def make_bigquery_dataset(dataset_name):
     # exists within the project.
     dataset = client.create_dataset(dataset, timeout=30)  # Make an API request.
     print(f"Created dataset {client.project}.{dataset.dataset_id}")
-    
-
-
 
 
 def make_bigquery_table(project_id, dataset_name, table_name):
@@ -112,7 +110,7 @@ def make_bigquery_table(project_id, dataset_name, table_name):
         bigquery.SchemaField("predicted_person", "STRING", mode="REQUIRED"),
         bigquery.SchemaField("score", "FLOAT", mode="REQUIRED"),
         bigquery.SchemaField("correct", "BOOL", mode="REQUIRED"),
-        bigquery.SchemaField('time', 'TIMESTAMP', mode="REQUIRED")
+        bigquery.SchemaField("time", "TIMESTAMP", mode="REQUIRED"),
     ]
 
     table = bigquery.Table(table_id, schema=schema)
@@ -125,8 +123,8 @@ def insert_into_table(project_id, dataset_name, table_name, result):
 
     bq_client = bigquery.Client()
     table = bq_client.get_table(f"{project_id}.{dataset_name}.{table_name}")
-    
-    actual_person = 'ben_affleck'
+
+    actual_person = "ben_affleck"
     predicted_person = result.display_name
 
     rows_to_insert = [
@@ -134,8 +132,8 @@ def insert_into_table(project_id, dataset_name, table_name, result):
             "actual_person": actual_person,
             "predicted_person": predicted_person,
             "score": result.classification.score,
-            "correct": actual_person==predicted_person,
-            'time': str(datetime.now())
+            "correct": actual_person == predicted_person,
+            "time": str(datetime.now()),
         }
     ]
 
