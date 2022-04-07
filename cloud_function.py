@@ -26,7 +26,7 @@ def hello_gcs(project_id, model_id):
 
     # file_path = "/tmp/image.jpg"
 
-    file_path = "C:\\Users\\Msand\\repos\\hollywood_stars\\ben_affleck.jpg"
+    file_path = "C:\\Users\\Msand\\repos\\hollywood_stars\\rock.jpg"
 
     with open(file_path, "rb") as f:
         content = f.read()
@@ -58,8 +58,8 @@ def hello_gcs(project_id, model_id):
 
     print("Prediction results:")
     for result in response.payload:
-        print("Predicted class name: {}".format(result.display_name))
-        print("Predicted class score: {}".format(result.classification.score))
+        print(f"Predicted class name: {result.display_name}")
+        print(f"Predicted class score: {result.classification.score}")
     return result
 
 
@@ -115,7 +115,7 @@ def make_bigquery_table(project_id, dataset_name, table_name):
 
     table = bigquery.Table(table_id, schema=schema)
     table = client.create_table(table)  # Make an API request.
-    print(f"Created table {table.project}.{table.dataset_id}.{table.table_id}")
+    print(f"Created table {table_id}")
 
 
 def insert_into_table(project_id, dataset_name, table_name, result):
