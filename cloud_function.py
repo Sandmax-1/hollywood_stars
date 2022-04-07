@@ -2,15 +2,15 @@ import os
 from google.cloud import automl, storage, bigquery
 import base64
 
+
 def hello_gcs(project_id, model_id):
     """Triggered by a change to a Cloud Storage bucket.
     Args:
          event (dict): Event payload.
          context (google.cloud.functions.Context): Metadata for the event.
     """
-    
+
     # TODO(developer): Uncomment and set the following variables
-    
 
     prediction_client = automl.PredictionServiceClient()
 
@@ -32,10 +32,10 @@ def hello_gcs(project_id, model_id):
     # print(content)
     # print(base64.b64encode(content))
 
-  #   payload = {"image": {
-  #     "imageBytes": base64.b64encode(content)
-  #   }
-  # }
+    #   payload = {"image": {
+    #     "imageBytes": base64.b64encode(content)
+    #   }
+    # }
 
     # image = automl.Image(image_bytes=base64.b64encode(content))
     print("setting the image..")
@@ -61,17 +61,18 @@ def hello_gcs(project_id, model_id):
         print("Predicted class score: {}".format(result.classification.score))
     return result
 
-def make_bigquery_table(project_id, result):
-    make_bigquery_dataset(result)
-    make_bigquery_table(project_id, result)
+
+def make_bigquery_table(project_id, dataset_name, table_name):
+    make_bigquery_dataset(dataset_name)
+    make_bigquery_table(project_id, table_name)
 
 
-def make_bigquery_dataset(result):
+def make_bigquery_dataset(dataset_name):
     # Construct a BigQuery client object.
     client = bigquery.Client()
 
     # TODO(developer): Set dataset_id to the ID of the dataset to create.
-    dataset_id = f"{client.project}.maxs_test_dataset"
+    dataset_id = f"{client.project}.{dataset_name}"
 
     # Construct a full Dataset object to send to the API.
     dataset = bigquery.Dataset(dataset_id)
@@ -83,10 +84,10 @@ def make_bigquery_dataset(result):
     # Raises google.api_core.exceptions.Conflict if the Dataset already
     # exists within the project.
     dataset = client.create_dataset(dataset, timeout=30)  # Make an API request.
-    print("Created dataset {}.{}".format(client.project, dataset.dataset_id))
+    print(f"Created dataset {client.project}.{dataset.dataset_id}")
 
 
-def make_bigquery_table(project_id, result):
+def make_bigquery_table(project_id, table_name):
     # Construct a BigQuery client object.
     client = bigquery.Client()
 
@@ -99,34 +100,33 @@ def make_bigquery_table(project_id, result):
 
     table = bigquery.Table(table_id, schema=schema)
     table = client.create_table(table)  # Make an API request.
-    print(
-        f"Created table {table.project}.{table.dataset_id}.{table.table_id}"
-    )
+    print(f"Created table {table.project}.{table.dataset_id}.{table.table_id}")
 
 
 def insert_into_table(project_id, dataset_name, table_name, result):
     from google.cloud import bigquery
+
     bq_client = bigquery.Client()
     table = bq_client.get_table(f"{project_id}.{dataset_name}.{table_name}")
 
-    rows_to_insert = [{'result': result.classification.score}]
+    rows_to_insert = [{"result": result.classification.score}]
 
     errors = bq_client.insert_rows_json(table, rows_to_insert)
     if errors == []:
         print("success")
 
-if __name__=='__main__':
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="C:\\Users\\Msand\\Downloads\\hackathon-team-01-5bb753db14f4.json"
+
+if __name__ == "__main__":
+    os.environ[
+        "GOOGLE_APPLICATION_CREDENTIALS"
+    ] = "C:\\Users\\Msand\\Downloads\\hackathon-team-01-5bb753db14f4.json"
     project_id = "hackathon-team-01"
     model_id = "ICN7438396273020895232"
     result = hello_gcs(project_id, model_id)
     first_run = False
+    dataset_name = "maxs_test_dataset"
+    table_name = "maxs_legendary_table"
     if first_run:
-        make_bigquery_table(project_id, result)
-    
-    dataset_name = 'maxs_test_dataset'
-    table_name = 'maxs_legendary_table'
-    insert_into_table(project_id, dataset_name, table_name, result)
-    
+        make_bigquery_table(project_id, dataset_name, table_name, result)
 
-    
+    insert_into_table(project_id, dataset_name, table_name, result)
