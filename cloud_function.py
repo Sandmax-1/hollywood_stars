@@ -1,6 +1,7 @@
 import os
 from google.cloud import automl, storage, bigquery
 import base64
+from datetime import datetime
 
 
 def hello_gcs(project_id, model_id):
@@ -62,10 +63,19 @@ def hello_gcs(project_id, model_id):
     return result
 
 
-def make_bigquery_table(project_id, dataset_name, table_name):
-    make_bigquery_dataset(dataset_name)
-    make_bigquery_table(project_id, table_name)
-
+def create_dataset_and_table(project_id, dataset_name, table_name):
+    try:
+        make_bigquery_dataset(dataset_name)
+    except Exception as e:
+        msg = str(e)
+        if 'Already Exists' not in msg:
+            raise
+    try:
+        make_bigquery_table(project_id, dataset_name, table_name)
+    except Exception as e:
+        msg = str(e)
+        if 'Already Exists' not in msg:
+            raise
 
 def make_bigquery_dataset(dataset_name):
     # Construct a BigQuery client object.
@@ -85,17 +95,24 @@ def make_bigquery_dataset(dataset_name):
     # exists within the project.
     dataset = client.create_dataset(dataset, timeout=30)  # Make an API request.
     print(f"Created dataset {client.project}.{dataset.dataset_id}")
+    
 
 
-def make_bigquery_table(project_id, table_name):
+
+
+def make_bigquery_table(project_id, dataset_name, table_name):
     # Construct a BigQuery client object.
     client = bigquery.Client()
 
     # TODO(developer): Set table_id to the ID of the table to create.
-    table_id = f"{project_id}.maxs_test_dataset.maxs_legendary_table"
+    table_id = f"{project_id}.{dataset_name}.{table_name}"
 
     schema = [
-        bigquery.SchemaField("result", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("actual_person", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("predicted_person", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("score", "FLOAT", mode="REQUIRED"),
+        bigquery.SchemaField("correct", "BOOL", mode="REQUIRED"),
+        bigquery.SchemaField('time', 'TIMESTAMP', mode="REQUIRED")
     ]
 
     table = bigquery.Table(table_id, schema=schema)
@@ -108,12 +125,31 @@ def insert_into_table(project_id, dataset_name, table_name, result):
 
     bq_client = bigquery.Client()
     table = bq_client.get_table(f"{project_id}.{dataset_name}.{table_name}")
+    
+    actual_person = 'ben_affleck'
+    predicted_person = result.display_name
 
-    rows_to_insert = [{"result": result.classification.score}]
+    rows_to_insert = [
+        {
+            "actual_person": actual_person,
+            "predicted_person": predicted_person,
+            "score": result.classification.score,
+            "correct": actual_person==predicted_person,
+            'time': str(datetime.now())
+        }
+    ]
 
     errors = bq_client.insert_rows_json(table, rows_to_insert)
     if errors == []:
         print("success")
+
+
+def run_the_lot(project_id, model_id, dataset_name, table_name):
+    result = hello_gcs(project_id, model_id)
+
+    create_dataset_and_table(project_id, dataset_name, table_name)
+
+    insert_into_table(project_id, dataset_name, table_name, result)
 
 
 if __name__ == "__main__":
@@ -122,11 +158,12 @@ if __name__ == "__main__":
     ] = "C:\\Users\\Msand\\Downloads\\hackathon-team-01-5bb753db14f4.json"
     project_id = "hackathon-team-01"
     model_id = "ICN7438396273020895232"
-    result = hello_gcs(project_id, model_id)
-    first_run = False
-    dataset_name = "maxs_test_dataset"
-    table_name = "maxs_legendary_table"
-    if first_run:
-        make_bigquery_table(project_id, dataset_name, table_name, result)
+    dataset_name = "model_results"
+    table_name = "model_results_table"
 
-    insert_into_table(project_id, dataset_name, table_name, result)
+    run_the_lot(
+        project_id=project_id,
+        model_id=model_id,
+        dataset_name=dataset_name,
+        table_name=table_name,
+    )
