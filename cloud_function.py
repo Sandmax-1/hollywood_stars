@@ -1,18 +1,16 @@
 import os
+from google.cloud import automl, storage, bigquery
+import base64
 
-def hello_gcs():
+def hello_gcs(project_id, model_id):
     """Triggered by a change to a Cloud Storage bucket.
     Args:
          event (dict): Event payload.
          context (google.cloud.functions.Context): Metadata for the event.
     """
-    from google.cloud import automl, storage
-    import base64
-    import os
-
+    
     # TODO(developer): Uncomment and set the following variables
-    project_id = "hackathon-team-01"
-    model_id = "ICN7438396273020895232"
+    
 
     prediction_client = automl.PredictionServiceClient()
 
@@ -61,8 +59,74 @@ def hello_gcs():
     for result in response.payload:
         print("Predicted class name: {}".format(result.display_name))
         print("Predicted class score: {}".format(result.classification.score))
+    return result
 
+def make_bigquery_table(project_id, result):
+    make_bigquery_dataset(result)
+    make_bigquery_table(project_id, result)
+
+
+def make_bigquery_dataset(result):
+    # Construct a BigQuery client object.
+    client = bigquery.Client()
+
+    # TODO(developer): Set dataset_id to the ID of the dataset to create.
+    dataset_id = f"{client.project}.maxs_test_dataset"
+
+    # Construct a full Dataset object to send to the API.
+    dataset = bigquery.Dataset(dataset_id)
+
+    # TODO(developer): Specify the geographic location where the dataset should reside.
+    dataset.location = "US"
+
+    # Send the dataset to the API for creation, with an explicit timeout.
+    # Raises google.api_core.exceptions.Conflict if the Dataset already
+    # exists within the project.
+    dataset = client.create_dataset(dataset, timeout=30)  # Make an API request.
+    print("Created dataset {}.{}".format(client.project, dataset.dataset_id))
+
+
+def make_bigquery_table(project_id, result):
+    # Construct a BigQuery client object.
+    client = bigquery.Client()
+
+    # TODO(developer): Set table_id to the ID of the table to create.
+    table_id = f"{project_id}.maxs_test_dataset.maxs_legendary_table"
+
+    schema = [
+        bigquery.SchemaField("result", "STRING", mode="REQUIRED"),
+    ]
+
+    table = bigquery.Table(table_id, schema=schema)
+    table = client.create_table(table)  # Make an API request.
+    print(
+        f"Created table {table.project}.{table.dataset_id}.{table.table_id}"
+    )
+
+
+def insert_into_table(project_id, dataset_name, table_name, result):
+    from google.cloud import bigquery
+    bq_client = bigquery.Client()
+    table = bq_client.get_table(f"{project_id}.{dataset_name}.{table_name}")
+
+    rows_to_insert = [{'result': result.classification.score}]
+
+    errors = bq_client.insert_rows_json(table, rows_to_insert)
+    if errors == []:
+        print("success")
 
 if __name__=='__main__':
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="C:\\Users\\Msand\\Downloads\\hackathon-team-01-5bb753db14f4.json"
-    hello_gcs()
+    project_id = "hackathon-team-01"
+    model_id = "ICN7438396273020895232"
+    result = hello_gcs(project_id, model_id)
+    first_run = False
+    if first_run:
+        make_bigquery_table(project_id, result)
+    
+    dataset_name = 'maxs_test_dataset'
+    table_name = 'maxs_legendary_table'
+    insert_into_table(project_id, dataset_name, table_name, result)
+    
+
+    
